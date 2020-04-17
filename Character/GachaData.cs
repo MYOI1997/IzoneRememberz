@@ -57,7 +57,7 @@ public class GachaData
             if(Level < MaxLevel)
             {
                 Level++;
-                NowExp = 0;
+                NowExp -= MaxExp;
                 MaxExp += 100;
 
                 switch (Rank)

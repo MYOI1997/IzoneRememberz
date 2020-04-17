@@ -4,6 +4,9 @@ using UnityEngine;
 using System.IO;
 using UnityEngine.UI;
 
+/* 최종 수정일 : 20.04.18 */
+/* 수정 내용 : Reflection 기능을 사용하여 저장의 유지보수 향상 */
+
 public enum LoadType
 {
     Stream,
@@ -42,106 +45,40 @@ public class CharacterInventory : MonoBehaviour
         CharacterListInfo = new FileInfo(Application.dataPath + "/Resources/Inventory.csv");
         CompilationListInfo = new FileInfo(Application.dataPath + "/Resources/CompilationList.csv");
 
-        if(CharacterListInfo.Exists)
+        if (CharacterListInfo.Exists)
         {
-            Load(Application.dataPath + "/Resources/Inventory.csv", CharacterList, LoadType.Stream);
+            Load(Application.dataPath + "/Resources/Inventory.csv", LoadType.Stream, CharacterList);
         }
         else
         {
-            Load("Inventory", CharacterList, LoadType.Asset);
+            Load("Inventory", LoadType.Asset, CharacterList);
         }
 
-        if(CompilationListInfo.Exists)
+        if (CompilationListInfo.Exists)
         {
-            Load(Application.dataPath + "/Resources/CompilationList.csv", CompilationList, LoadType.Stream);
+            Load(Application.dataPath + "/Resources/CompilationList.csv", LoadType.Stream, CompilationList);
         }
         else
         {
-            Load("CompilationList", CompilationList, LoadType.Asset);
+            Load("CompilationList", LoadType.Asset, CompilationList);
         }
     }
 
-    public void Load(string FileName, List<GachaData> TargetList, LoadType Type)
+    public void Load(string FileDirectory, LoadType Type, List<GachaData> TargetList)
     {
-        if(Type == LoadType.Stream)
-        {
-            StringData = CSVReader.Read(FileName);
-        }
-        else
-        {
-            StringData = CSVReader.AssetRead(FileName);
-        }
-
-        for(int i = 0; i < StringData.Count; i++)
-        {
-            GachaData TempCharacter = new GachaData();
-
-            TempCharacter.Name = StringData[i]["Name"].ToString();
-            TempCharacter.Image = StringData[i]["Image"].ToString();
-
-            switch (StringData[i]["Rank"])
-            {
-                case "S" : TempCharacter.Rank = CardRank.S; break;
-                case "A" : TempCharacter.Rank = CardRank.A; break;
-                case "B" : TempCharacter.Rank = CardRank.B; break;
-                default: break;
-            }
-
-            TempCharacter.Property = StringData[i]["Property"].ToString();
-            TempCharacter.Power = int.Parse(StringData[i]["Power"].ToString());
-            TempCharacter.Appearence = int.Parse(StringData[i]["Appearence"].ToString());
-            TempCharacter.Weight = int.Parse(StringData[i]["Weight"].ToString());
-            TempCharacter.Level = int.Parse(StringData[i]["Level"].ToString());
-            TempCharacter.MaxLevel = int.Parse(StringData[i]["MaxLevel"].ToString());
-            TempCharacter.NowExp = int.Parse(StringData[i]["NowExp"].ToString());
-            TempCharacter.MaxExp = int.Parse(StringData[i]["MaxExp"].ToString());
-            TempCharacter.Enhance = int.Parse(StringData[i]["Enhance"].ToString());
-            TempCharacter.Key = StringData[i]["Key"].ToString();
-            TempCharacter.Lock = int.Parse(StringData[i]["Lock"].ToString());
-
-            TargetList.Add(TempCharacter);
-        }
+        DataManager.Instance.DataLoad(FileDirectory, Type, TargetList);
     }
 
-    public void Save(string FileName, List<GachaData> TargetList)
+    public void Save(string SaveDirectory, List<GachaData> TargetList)
     {
-        using (var Writer = new CsvFileWriter(FileName))
-        {
-            List<string> Columns = new List<string>() { "Name", "Image", "Rank", "Property", "Power", "Appearence", "Weight", "Level", "MaxLevel", "NowExp", "MaxExp", "Enhance", "Key", "Lock" };
+        List<string> Columns = new List<string>() { "Name", "Image", "Rank", "Property", "Power", "Appearence", "Weight", "Level", "MaxLevel", "NowExp", "MaxExp", "Enhance", "Key", "Lock" };
 
-            Writer.WriteRow(Columns);
-            Columns.Clear();
-
-            for(int i = 0; i < TargetList.Count; i++)
-            {
-                Columns.Add(TargetList[i].Name);
-                Columns.Add(TargetList[i].Image.ToString());
-                Columns.Add(TargetList[i].Rank.ToString());
-                Columns.Add(TargetList[i].Property.ToString());
-                Columns.Add(TargetList[i].Power.ToString());
-                Columns.Add(TargetList[i].Appearence.ToString());
-                Columns.Add(TargetList[i].Weight.ToString());
-                Columns.Add(TargetList[i].Level.ToString());
-                Columns.Add(TargetList[i].MaxLevel.ToString());
-                Columns.Add(TargetList[i].NowExp.ToString());
-                Columns.Add(TargetList[i].MaxExp.ToString());
-                Columns.Add(TargetList[i].Enhance.ToString());
-                Columns.Add(TargetList[i].Key.ToString());
-                Columns.Add(TargetList[i].Lock.ToString());
-
-                Writer.WriteRow(Columns);
-                Columns.Clear();
-            }
-
-            Writer.Dispose();
-        }
-
-        Debug.Log("CSV 저장 완료");
+        DataManager.Instance.DataSave(SaveDirectory, TargetList, Columns);
     }
 
     public void PrintCharacterData()
     {
-        for(int i = 0; i < CharacterList.Count; i++)
+        for (int i = 0; i < CharacterList.Count; i++)
         {
             Debug.Log(CharacterList[i].Name);
             Debug.Log(CharacterList[i].Image);
@@ -152,11 +89,11 @@ public class CharacterInventory : MonoBehaviour
     {
         SyncComplete = false;
 
-        for(int i = 0; i < CompilationList.Count; i++)
+        for (int i = 0; i < CompilationList.Count; i++)
         {
-            for(int j = 0; j < CharacterList.Count; j++)
+            for (int j = 0; j < CharacterList.Count; j++)
             {
-                if(CompilationList[i].Key == CharacterList[j].Key)
+                if (CompilationList[i].Key == CharacterList[j].Key)
                 {
                     Debug.Log("데이터 동기화 중");
 
@@ -180,7 +117,7 @@ public class CharacterInventory : MonoBehaviour
     {
         DataSync();
 
-        if(SyncComplete)
+        if (SyncComplete)
         {
             Save(Application.dataPath + "/Resources/Inventory.csv", CharacterList);
             Save(Application.dataPath + "/Resources/CompilationList.csv", CompilationList);
